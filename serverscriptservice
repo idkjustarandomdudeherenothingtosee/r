@@ -1,0 +1,91 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+local Events = ReplicatedStorage:WaitForChild("Events")
+local AttackHitboxes = require(script.Parent.Modules.AttackHitboxes)
+
+-- place this where the old script for combat was
+
+local clickAttackDebounces = {}
+
+Events.ClickAttack.OnServerEvent:Connect(function(Player)
+	local Character = Player.Character
+	if not Character then return end
+
+	local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+	if not Humanoid or Humanoid.Health <= 0 then return end
+
+	-- Improved anti-spam: uses timestamp instead of plain boolean
+	if clickAttackDebounces[Player] and tick() < clickAttackDebounces[Player] then
+		return
+	end
+	clickAttackDebounces[Player] = tick() + 0.35 -- cooldown in seconds
+
+	local Punchcombo = Player:FindFirstChild("Values") and Player.Values:FindFirstChild("PunchCombo")
+	if not Punchcombo then return end
+
+	if Punchcombo.Value <= 0 then
+		Punchcombo.Value = 1
+	end
+
+	local Animation = script.PunchAnimationCycle:FindFirstChild(tostring(Punchcombo.Value))
+	if not Animation then
+		warn("Missing PunchAnimationCycle: "..tostring(Punchcombo.Value))
+		return
+	end
+
+	local Animator = Humanoid:FindFirstChildOfClass("Animator")
+	if not Animator then return end
+
+	local LoadedPunchAnimation = Animator:LoadAnimation(Animation)
+	LoadedPunchAnimation:Play()
+
+	if Punchcombo.Value >= #script.PunchAnimationCycle:GetChildren() then
+		Punchcombo.Value = 1
+	else
+		Punchcombo.Value += 1
+	end
+
+	LoadedPunchAnimation:GetMarkerReachedSignal("Hit"):Connect(function()
+		AttackHitboxes.CreateHitbox(Character, Vector3.new(9, 9, 10), 10, true)
+	end)
+end)
+
+
+Events.Block.OnServerEvent:Connect(function(Player, Value)
+	local Character = Player.Character
+	if not Character then return end
+
+	local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+	if not Humanoid or Humanoid.Health <= 0 then return end
+
+	-- Optional: If you want block spam cooldown, reuse same timestamp
+	if clickAttackDebounces[Player] and tick() < clickAttackDebounces[Player] then
+		return
+	end
+
+	local Animator = Humanoid:FindFirstChildOfClass("Animator")
+	if not Animator then return end
+
+	if not Value then
+		-- Stop blocking
+		for _, track in Animator:GetPlayingAnimationTracks() do
+			if track.Name == "Block" then
+				track:Stop()
+			end
+		end
+		if Character:FindFirstChild("Blocking") then
+			Character.Blocking:Destroy()
+		end
+	else
+		-- Start blocking
+		local BlockAnim = script.Animations.Block
+		local LoadedBlock = Animator:LoadAnimation(BlockAnim)
+		LoadedBlock.Name = "Block"
+		LoadedBlock:Play()
+
+		local Blocking = Instance.new("StringValue")
+		Blocking.Name = "Blocking"
+		Blocking.Parent = Character
+	end
+end)

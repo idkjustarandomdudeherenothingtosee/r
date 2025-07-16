@@ -6,7 +6,6 @@ local rem = rep:WaitForChild("Events"):WaitForChild("Block")
 
 local holding = false
 
--- make mobile button only if touch enabled
 if uis.TouchEnabled then
 	local ui = Instance.new("ScreenGui")
 	ui.Name = "blockgui"
@@ -68,19 +67,9 @@ if uis.TouchEnabled then
 		holding = false
 		rem:FireServer(false)
 	end)
-
-	uis.InputEnded:Connect(function(i, p)
-		if p then return end
-		if i.UserInputType == Enum.UserInputType.Touch then
-			if holding then
-				holding = false
-				rem:FireServer(false)
-			end
-		end
-	end)
 end
 
--- PC block with F key
+-- PC block key (F)
 uis.InputBegan:Connect(function(i, p)
 	if p then return end
 	if i.KeyCode == Enum.KeyCode.F then

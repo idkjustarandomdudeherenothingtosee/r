@@ -1,4 +1,4 @@
-import { sign } from "./shared"
+import { sign } from "./shared.js"
 
 export const config = { runtime: "edge" }
 
